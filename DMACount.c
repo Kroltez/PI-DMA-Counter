@@ -166,23 +166,6 @@ struct DmaControlBlock {
     uint32_t _reserved[2];
 };
 
-	//// Documentation: BCM2835 ARM Peripherals @4.2.1.2
-//struct dma_channel_header {
-  //uint32_t cs;        // control and status.
-  //uint32_t cblock;    // control block address.
-//};
-
-//// @4.2.1.1
-//struct dma_cb {    // 32 bytes.
-  //uint32_t info;   // transfer information.
-  //uint32_t src;    // physical source address.
-  //uint32_t dst;    // physical destination address.
-  //uint32_t length; // transfer length.
-  //uint32_t stride; // stride mode.
-  //uint32_t next;   // next control block; Physical address. 32 byte aligned.
-  //uint32_t pad[2];
-//};
-
 //cat /sys/module/dma/parameters/dmachans gives a bitmask of DMA channels that are not used by GPU. Results: ch 1, 3, 6, 7 are reserved.
 //dmesg | grep "DMA"; results: Ch 2 is used by SDHC host
 //ch 0 is known to be used for graphics acceleration
@@ -269,33 +252,6 @@ static uintptr_t UncachedMemBlock_to_physical(const struct UncachedMemBlock *blk
     return blk->bus_addr + offset;
 }
 
-// Return a pointer to a periphery subsystem register.
-static void *mmap_bcm_register(off_t register_offset) {
-  const off_t base = PERI_BASE;
-
-  int mem_fd;
-  if ((mem_fd = open("/dev/mem", O_RDWR|O_SYNC) ) < 0) {
-    perror("can't open /dev/mem: ");
-    fprintf(stderr, "You need to run this as root!\n");
-    return NULL;
-  }
-
-  uint32_t *result =
-    (uint32_t*) mmap(NULL,                  // Any adddress in our space will do
-                     PAGE_SIZE,
-                     PROT_READ|PROT_WRITE,  // Enable r/w on GPIO registers.
-                     MAP_SHARED,
-                     mem_fd,                // File to map
-                     base + register_offset // Offset to bcm register
-                     );
-  close(mem_fd);
-
-  if (result == MAP_FAILED) {
-    fprintf(stderr, "mmap error %p\n", result);
-    return NULL;
-  }
-  return result;
-}
 
 //map a physical address into our virtual address space. memfd is the file descriptor for /dev/mem
 volatile uint32_t* mapPeripheral(int memfd, int addr) {
