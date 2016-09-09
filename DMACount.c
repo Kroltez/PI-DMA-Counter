@@ -288,43 +288,6 @@ void writeBitmasked(volatile uint32_t *dest, uint32_t mask, uint32_t value) {
 
 
 
-//allocate a page & simultaneously determine its physical address.
-//virtAddr and physAddr are essentially passed by-reference.
-//this allows for:
-//void *virt, *phys;
-//makeVirtPhysPage(&virt, &phys)
-//now, virt[N] exists for 0 <= N < PAGE_SIZE,
-//  and phys+N is the physical address for virt[N]
-//based on http://www.raspians.com/turning-the-raspberry-pi-into-an-fm-transmitter/
-void makeVirtPhysPage(void** virtAddr, void** physAddr) {
-    *virtAddr = valloc(PAGE_SIZE); //allocate one page of RAM
-
-    //force page into RAM and then lock it there:
-    ((int*)*virtAddr)[0] = 1;
-    mlock(*virtAddr, PAGE_SIZE);
-    memset(*virtAddr, 0, PAGE_SIZE); //zero-fill the page for convenience
-
-    //Magic to determine the physical address for this page:
-    uint64_t pageInfo;
-    int file = open("/proc/self/pagemap", 'r');
-    lseek(file, ((size_t)*virtAddr)/PAGE_SIZE*8, SEEK_SET);
-    read(file, &pageInfo, 8);
-
-    *physAddr = (void*)(size_t)(pageInfo*PAGE_SIZE);
-    //printf("makeVirtPhysPage virtual to phys: %p -> %p\n", *virtAddr, *physAddr);
-}
-
-//call with virtual address to deallocate a page allocated with makeVirtPhysPage
-void freeVirtPhysPage(void* virtAddr) {
-    munlock(virtAddr, PAGE_SIZE);
-    free(virtAddr);
-}
-
-
-
-
-
-
 void DMA_Run() {
 
 	printThings(1);
